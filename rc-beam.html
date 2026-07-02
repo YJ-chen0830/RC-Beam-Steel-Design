@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RC梁撓曲設計檢核</title>
+<style>
+  :root{--navy:#0b1f3a;--navy2:#13284a;--gold:#c9a14a;--gold2:#e0bf6e;--bg:#f5f3ee;--ink:#1c2530;--line:#d8d2c2;}
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Noto Sans TC","Segoe UI",sans-serif;background:var(--bg);color:var(--ink);}
+  header{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#f5f3ee;padding:28px 32px;}
+  header h1{margin:0;font-size:22px;}
+  header span{color:var(--gold2);font-size:13px;display:block;margin-top:4px;}
+  main{max-width:1100px;margin:0 auto;padding:28px 20px 60px;}
+  .grid{display:grid;grid-template-columns:400px 1fr;gap:24px;}
+  @media(max-width:860px){.grid{grid-template-columns:1fr;}}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:20px 22px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+  .card h2{font-size:15px;margin:0 0 14px;color:var(--navy);border-bottom:2px solid var(--gold);padding-bottom:8px;}
+  label{display:block;font-size:12.5px;color:#555;margin:10px 0 4px;}
+  input,select{width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-size:14px;background:#fafaf8;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  button{margin-top:16px;width:100%;padding:11px;border:none;border-radius:7px;background:var(--navy);color:#fff;font-size:15px;font-weight:600;cursor:pointer;}
+  button:hover{background:var(--navy2);}
+  table{width:100%;border-collapse:collapse;margin-top:8px;}
+  td{padding:6px 4px;border-bottom:1px solid #eee;font-size:13.5px;}
+  td:last-child{text-align:right;font-weight:600;}
+  .ok{color:#1a7d3a;font-weight:700;}
+  .ng{color:#c0392b;font-weight:700;}
+  .note{font-size:12px;color:#888;margin-top:12px;line-height:1.7;}
+  .section-title{font-size:13px;font-weight:700;color:var(--navy);margin:14px 0 6px;border-left:3px solid var(--gold);padding-left:8px;}
+  svg{width:100%;height:260px;background:#fafaf8;border:1px solid var(--line);border-radius:8px;margin-top:12px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>RC梁撓曲設計檢核 (RC Beam Flexural Design)</h1>
+  <span>矩形/T型斷面 · ACI 318 / 台灣規範 · Whitney 等效矩形應力塊</span>
+</header>
+<main>
+<div class="grid">
+  <div class="card">
+    <h2>斷面輸入</h2>
+    <label>梁型式</label>
+    <select id="beamType" onchange="toggleFlange()">
+      <option value="rect">矩形斷面</option>
+      <option value="T">T型斷面</option>
+    </select>
+
+    <div class="row2">
+      <div><label>腹板寬 bw (mm)</label><input id="bw" type="number" value="300"></div>
+      <div><label>梁總深 h (mm)</label><input id="h" type="number" value="600"></div>
+    </div>
+    <div id="flangeRow" style="display:none">
+      <div class="row2">
+        <div><label>翼板有效寬 be (mm)</label><input id="be" type="number" value="900"></div>
+        <div><label>翼板厚度 hf (mm)</label><input id="hf" type="number" value="120"></div>
+      </div>
+    </div>
+    <div class="row2">
+      <div><label>有效深度 d (mm)</label><input id="d" type="number" value="540"></div>
+      <div><label>壓力側鋼筋深度 d' (mm)</label><input id="dp" type="number" value="60"></div>
+    </div>
+
+    <h2 style="margin-top:18px;">材料</h2>
+    <div class="row2">
+      <div><label>f'c (MPa)</label><input id="fc" type="number" value="28"></div>
+      <div><label>fy (MPa)</label><input id="fy" type="number" value="420"></div>
+    </div>
+
+    <h2 style="margin-top:18px;">配筋</h2>
+    <div class="section-title">拉力筋 As</div>
+    <div class="row2">
+      <div><label>主筋根數</label><input id="nBar" type="number" value="4"></div>
+      <div><label>主筋直徑 (mm)</label><input id="dBar" type="number" value="25"></div>
+    </div>
+    <div class="section-title">壓力筋 As'（可設0）</div>
+    <div class="row2">
+      <div><label>壓力筋根數</label><input id="nBarP" type="number" value="0"></div>
+      <div><label>壓力筋直徑 (mm)</label><input id="dBarP" type="number" value="25"></div>
+    </div>
+
+    <h2 style="margin-top:18px;">設計需求</h2>
+    <label>需求彎矩 Mu (kN·m)</label>
+    <input id="Mu" type="number" value="350">
+
+    <button onclick="run()">計算 / Calculate</button>
+    <div class="note">
+      採 Whitney 等效矩形應力塊（β1）計算標稱彎矩強度 Mn，乘以 φ=0.9（撓曲控制）得設計強度 φMn。
+      同時檢核最小鋼筋量（ACI 318-19 §9.6.1）及最大鋼筋量（ρ ≤ 0.75ρb）。
+      T型斷面若壓力塊超出翼板厚度，自動採 T 型斷面計算。
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>計算結果</h2>
+    <div id="result"><p style="color:#888">尚未計算</p></div>
+    <svg id="diagram" viewBox="0 0 500 240"></svg>
+  </div>
+</div>
+</main>
+
+<script>
+function toggleFlange(){
+  document.getElementById('flangeRow').style.display =
+    document.getElementById('beamType').value==='T' ? '' : 'none';
+}
+
+function run(){
+  const type = document.getElementById('beamType').value;
+  const bw = +document.getElementById('bw').value;
+  const h  = +document.getElementById('h').value;
+  const be = type==='T' ? +document.getElementById('be').value : bw;
+  const hf = type==='T' ? +document.getElementById('hf').value : h;
+  const d  = +document.getElementById('d').value;
+  const dp = +document.getElementById('dp').value;
+  const fc = +document.getElementById('fc').value;
+  const fy = +document.getElementById('fy').value;
+  const nBar  = +document.getElementById('nBar').value;
+  const dBar  = +document.getElementById('dBar').value;
+  const nBarP = +document.getElementById('nBarP').value;
+  const dBarP = +document.getElementById('dBarP').value;
+  const Mu   = +document.getElementById('Mu').value;
+  const Es = 200000;
+
+  const As  = nBar  * Math.PI/4 * dBar*dBar;
+  const Asp = nBarP * Math.PI/4 * dBarP*dBarP;
+
+  const b1 = fc<=28 ? 0.85 : fc>=55 ? 0.65 : 0.85-0.05*(fc-28)/7;
+
+  let c = 0, a = 0, Mn = 0, fsp = 0;
+  const tol = 0.001;
+  c = (As*fy - Asp*fy) / (0.85*fc*be*b1);
+  for(let it=0; it<100; it++){
+    const cOld = c;
+    fsp = Math.min(Es*0.003*(c-dp)/c, fy);
+    a = b1*c;
+    if(type==='T' && a > hf){
+      const Ccf = 0.85*fc*(be-bw)*hf;
+      const Ccw = 0.85*fc*bw*a;
+      const Cc = Ccf + Ccw;
+    }
+    const Cs = Asp*(fsp-0.85*fc);
+    c = (As*fy - Cs - (type==='T'&&a>hf ? 0.85*fc*(be-bw)*hf : 0)) /
+        (0.85*fc*bw*b1);
+    if(Math.abs(c-cOld)<tol) break;
+  }
+  a = b1*c;
+  fsp = Math.min(Es*0.003*(c-dp)/c, fy);
+
+  let Ms_compress;
+  if(type==='T' && a > hf){
+    const Ccf = 0.85*fc*(be-bw)*hf;
+    const Ccw = 0.85*fc*bw*a;
+    Ms_compress = Ccf*(d-hf/2) + Ccw*(d-a/2);
+  } else {
+    const Cc = 0.85*fc*(type==='T'?be:bw)*a;
+    Ms_compress = Cc*(d-a/2);
+  }
+  const Cs = Asp*(fsp-0.85*fc);
+  Mn = (Ms_compress + Cs*(d-dp)) / 1e6;
+
+  const phi = 0.9;
+  const phiMn = phi*Mn;
+  const epsT = 0.003*(d-c)/c;
+  const AsMin1 = (0.25*Math.sqrt(fc)/fy)*bw*d;
+  const AsMin2 = (1.4/fy)*bw*d;
+  const AsMin = Math.max(AsMin1, AsMin2);
+  const rhob = (0.85*fc*b1/fy)*(600/(600+fy));
+  const AsMax = 0.75*rhob*bw*d;
+  const rho = As/(bw*d);
+  const ok = phiMn >= Mu;
+  const okMinRho = As >= AsMin;
+  const okMaxRho = As <= AsMax;
+  const okTension = epsT >= 0.004;
+  const AsReq = (Mu*1e6) / (phi*fy*(d-a/2));
+
+  document.getElementById('result').innerHTML = `
+    <table>
+      <tr><td>As 實配 (mm²)</td><td>${As.toFixed(0)}</td></tr>
+      <tr><td>As 需求估算 (mm²)</td><td>${AsReq.toFixed(0)}</td></tr>
+      <tr><td>As' 壓力筋 (mm²)</td><td>${Asp.toFixed(0)}</td></tr>
+      <tr><td>ρ 配筋率</td><td>${(rho*100).toFixed(3)}%</td></tr>
+      <tr><td>β1</td><td>${b1.toFixed(3)}</td></tr>
+      <tr><td>中性軸深度 c (mm)</td><td>${c.toFixed(1)}</td></tr>
+      <tr><td>壓力塊深度 a (mm)</td><td>${a.toFixed(1)}</td></tr>
+      <tr><td>壓力筋應力 f's (MPa)</td><td>${fsp.toFixed(1)}</td></tr>
+      <tr><td>εt 拉力筋應變</td><td>${epsT.toFixed(4)}</td></tr>
+      <tr><td>Mn 標稱彎矩強度 (kN·m)</td><td>${Mn.toFixed(1)}</td></tr>
+      <tr><td>φMn 設計彎矩強度 (kN·m)</td><td>${phiMn.toFixed(1)}</td></tr>
+      <tr><td>Mu (kN·m)</td><td>${Mu}</td></tr>
+      <tr><td>φMn / Mu</td><td>${(phiMn/Mu).toFixed(3)}</td></tr>
+      <tr><td>撓曲強度判定</td><td>${ok?'<span class="ok">OK ✓</span>':'<span class="ng">NG ✗ 撓曲強度不足</span>'}</td></tr>
+      <tr><td>最小鋼筋量 (mm²)</td><td>${AsMin.toFixed(0)} ${okMinRho?'<span class="ok">OK</span>':'<span class="ng">NG 鋼筋量不足</span>'}</td></tr>
+      <tr><td>最大鋼筋量 (mm²)</td><td>${AsMax.toFixed(0)} ${okMaxRho?'<span class="ok">OK</span>':'<span class="ng">NG 過筋</span>'}</td></tr>
+      <tr><td>拉力控制 εt≥0.004</td><td>${okTension?'<span class="ok">OK (拉力控制)</span>':'<span class="ng">NG 非拉力控制 φ需降低</span>'}</td></tr>
+    </table>
+  `;
+  drawDiagram(bw, h, d, dp, a, c, As, Asp, type, be, hf);
+}
+
+function drawDiagram(bw, h, d, dp, a, c, As, Asp, type, be, hf){
+  const svg = document.getElementById('diagram');
+  svg.innerHTML = '';
+  const ns = "http://www.w3.org/2000/svg";
+  const W=500, H=240, ml=60, mr=40, mt=20, mb=20;
+  const pH = H-mt-mb, pW = W-ml-mr;
+  function el(tag, attrs, txt){
+    const e = document.createElementNS(ns, tag);
+    for(const k in attrs) e.setAttribute(k, attrs[k]);
+    if(txt!=null) e.textContent = txt;
+    return e;
+  }
+  const scale = pH/h;
+  const bwPx = Math.min(bw*scale, pW*0.5);
+  const hPx = h*scale;
+  const cx = ml + pW/2;
+  if(type==='T'){
+    const bePx = Math.min(be*scale, pW*0.95);
+    const hfPx = hf*scale;
+    svg.appendChild(el('rect',{x:cx-bePx/2,y:mt,width:bePx,height:hfPx,fill:'#dde6f0',stroke:'#0b1f3a','stroke-width':1.5}));
+  }
+  svg.appendChild(el('rect',{x:cx-bwPx/2,y:mt,width:bwPx,height:hPx,fill:'#e8eef5',stroke:'#0b1f3a','stroke-width':1.5}));
+  const aPx = Math.min(a*scale, hPx);
+  svg.appendChild(el('rect',{x:cx-bwPx/2+2,y:mt+2,width:bwPx-4,height:aPx,fill:'rgba(201,161,74,0.35)'}));
+  svg.appendChild(el('text',{x:cx,y:mt+aPx/2+4,'text-anchor':'middle','font-size':11,fill:'#8a6200'},'壓力塊 a='+a.toFixed(0)+'mm'));
+  const cPx = c*scale;
+  svg.appendChild(el('line',{x1:cx-bwPx/2-10,y1:mt+cPx,x2:cx+bwPx/2+10,y2:mt+cPx,stroke:'#c0392b','stroke-width':1,'stroke-dasharray':'5,3'}));
+  svg.appendChild(el('text',{x:cx+bwPx/2+12,y:mt+cPx+4,'font-size':10,fill:'#c0392b'},'NA'));
+  const dPx = d*scale;
+  svg.appendChild(el('circle',{cx:cx,cy:mt+dPx,r:5,fill:'#0b1f3a'}));
+  svg.appendChild(el('text',{x:cx+10,y:mt+dPx+4,'font-size':10,fill:'#0b1f3a'},'As='+As.toFixed(0)+'mm²'));
+  if(Asp>0){
+    const dpPx = dp*scale;
+    svg.appendChild(el('circle',{cx:cx,cy:mt+dpPx,r:4,fill:'#888'}));
+    svg.appendChild(el('text',{x:cx+10,y:mt+dpPx+4,'font-size':10,fill:'#555'},"As'="+Asp.toFixed(0)+"mm²"));
+  }
+  svg.appendChild(el('text',{x:cx-bwPx/2-5,y:mt+hPx/2,'text-anchor':'end','font-size':10,fill:'#555'},'h='+h));
+  svg.appendChild(el('text',{x:cx,y:mt+hPx+14,'text-anchor':'middle','font-size':10,fill:'#555'},'bw='+bw));
+}
+
+window.onload = run;
+</script>
+</body>
+</html>
