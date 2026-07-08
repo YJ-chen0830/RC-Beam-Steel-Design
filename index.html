@@ -33,8 +33,9 @@
   details.proc pre{margin:0;padding:10px 16px 14px;font-family:"Courier New",Consolas,monospace;font-size:11.5px;line-height:1.85;white-space:pre-wrap;color:#2c3e50;border-top:1px solid var(--line);}
   @media print{details.proc{display:block;} details.proc summary{display:none;} details.proc pre{padding:0;font-size:11px;}}
 </style>
+<script src="https://yj-chen0830.github.io/jrh-core/jrh-core.js?v=1" defer></script>
 </head>
-<body>
+<body data-tool="rcb">
 <header>
   <h1>RC梁撓曲設計檢核 (RC Beam Flexural Design)</h1>
   <span>矩形/T型斷面 · ACI 318-19 · Whitney 等效矩形應力塊</span>
@@ -304,5 +305,7 @@ function drawDiagram(bw,h,d,dp,a,c,As,Asp,type,be,hf){
 }
 window.onload=run;
 </script>
+<div class="no-print" style="max-width:1100px;margin:10px auto 40px;padding:0 20px;"><button type="button" onclick="jrhPrint('RC 梁斷面設計計算書')" style="width:100%;padding:13px;border:none;border-radius:8px;background:#c9a14a;color:#0b1f3a;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">📄 產出計算書 PDF</button></div>
+<style>@media print{.no-print{display:none!important}}</style>
 </body>
 </html>
