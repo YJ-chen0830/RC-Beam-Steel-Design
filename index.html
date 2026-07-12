@@ -196,6 +196,10 @@ function run(){
       <tr><td>拉力控制 εt≥0.004</td><td>${epsT>=0.004?'<span class="ok">OK</span>':'<span class="ng">NG φ需降低</span>'}</td></tr>
     </table>`;
 
+  if(window.JRH && JRH.saveOutput){
+    JRH.saveOutput({bw:bw, h:h, d:d, fc:fc, As:As, Asp:Asp});
+  }
+
   // ── 計算過程 ──
   const bEff=type==='T'?be:bw;
   const isTFlange=type==='T'&&a>hf;
