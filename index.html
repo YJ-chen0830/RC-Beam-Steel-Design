@@ -329,11 +329,19 @@ function drawDiagram(bw,h,d,dp,a,c,As,Asp,type,be,hf){
 window.onload=run;
 
 function jrhTryInbound(){
-  if(!(window.JRH && JRH.showInboundBanner))return;
-  JRH.showInboundBanner('bsm','梁剪力彎矩圖',function(data){
+  if(!(window.JRH && JRH.getOutput && JRH.showInboundBanner))return;
+  var shown=JRH.showInboundBanner('bsm','梁剪力彎矩圖',function(data){
     document.getElementById('Mu').value=data.Mu_max.toFixed(2);
     run();
   });
+  if(shown)return;
+  var lc=JRH.getOutput('lc');
+  if(lc && lc.data.type==='M'){
+    JRH.showInboundBanner('lc','載重組合計算（彎矩 M 組合）',function(data){
+      document.getElementById('Mu').value=data.value_LRFD.toFixed(2);
+      run();
+    });
+  }
 }
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',jrhTryInbound);
 else jrhTryInbound();
