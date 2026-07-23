@@ -113,7 +113,7 @@
     <label>需求彎矩 Mu (kN·m)</label>
     <input id="Mu" type="number" value="350">
     <button onclick="run()">計算 / Calculate</button>
-    <div class="note">採 Whitney 等效矩形應力塊計算 Mn，φ=0.9（撓曲控制）。同時檢核 AsMin（ACI 318-19 §9.6.1）及 AsMax（ρ≤0.75ρb）。</div>
+    <div class="note">採 Whitney 等效矩形應力塊計算 Mn，φ 依 ACI 318-19 §21.2.2 應變分區計算（εt≥0.005 拉力控制 φ=0.90；εt≤εty 壓力控制 φ=0.65；中間過渡區線性內插）。同時檢核 AsMin（ACI 318-19 §9.6.1）及 AsMax（ρ≤0.75ρb）。</div>
   </div>
   <div class="card">
     <h2>計算結果</h2>
@@ -176,9 +176,13 @@ function run(){
   const Cs=Asp*(fsp-0.85*fc);
   Mn=(Ms_compress+Cs*(d-dp))/1e6;
 
-  const phi=0.9;
-  const phiMn=phi*Mn;
   const epsT=0.003*(d-c)/c;
+  const epsTy=fy/Es;
+  let phi, phiZone;
+  if(epsT>=0.005){ phi=0.90; phiZone='拉力控制'; }
+  else if(epsT<=epsTy){ phi=0.65; phiZone='壓力控制'; }
+  else{ phi=0.65+(epsT-epsTy)*(0.25/(0.005-epsTy)); phiZone='過渡區'; }
+  const phiMn=phi*Mn;
   const AsMin=Math.max((0.25*Math.sqrt(fc)/fy)*bw*d,(1.4/fy)*bw*d);
   const rhob=(0.85*fc*b1/fy)*(600/(600+fy));
   const AsMax=0.75*rhob*bw*d;
@@ -197,6 +201,7 @@ function run(){
       <tr><td>壓力塊深度 a (mm)</td><td>${a.toFixed(1)}</td></tr>
       <tr><td>壓力筋應力 f's (MPa)</td><td>${fsp.toFixed(1)}</td></tr>
       <tr><td>εt 拉力筋應變</td><td>${epsT.toFixed(4)}</td></tr>
+      <tr><td>應變分區 / φ 折減係數</td><td>${phiZone}，φ = ${phi.toFixed(3)}</td></tr>
       <tr><td>Mn 標稱彎矩強度 (kN·m)</td><td>${Mn.toFixed(1)}</td></tr>
       <tr><td>φMn 設計彎矩強度 (kN·m)</td><td>${phiMn.toFixed(1)}</td></tr>
       <tr><td>Mu (kN·m)</td><td>${Mu}</td></tr>
@@ -204,7 +209,7 @@ function run(){
       <tr><td>撓曲強度判定</td><td>${ok?'<span class="ok">OK ✓</span>':'<span class="ng">NG ✗</span>'}</td></tr>
       <tr><td>最小鋼筋量 (mm²)</td><td>${AsMin.toFixed(0)} ${As>=AsMin?'<span class="ok">OK</span>':'<span class="ng">NG</span>'}</td></tr>
       <tr><td>最大鋼筋量 (mm²)</td><td>${AsMax.toFixed(0)} ${As<=AsMax?'<span class="ok">OK</span>':'<span class="ng">NG 過筋</span>'}</td></tr>
-      <tr><td>拉力控制 εt≥0.004</td><td>${epsT>=0.004?'<span class="ok">OK</span>':'<span class="ng">NG φ需降低</span>'}</td></tr>
+      <tr><td>拉力控制 εt≥0.005</td><td>${epsT>=0.005?'<span class="ok">OK</span>':'<span class="ng">NG（φ已依過渡區折減）</span>'}</td></tr>
     </table>`;
 
   if(window.JRH && JRH.saveOutput){
@@ -274,10 +279,11 @@ ${isTFlange?`  T型斷面分段計算：
      = (${Ms_compress.toFixed(1)} + ${Cs.toFixed(1)}×(${d}-${dp})) / 1,000,000
      = ${Mn.toFixed(3)} kN·m
 
-【六、設計彎矩強度 φMn（ACI 318-19 §21.2.1）】
+【六、設計彎矩強度 φMn（ACI 318-19 §21.2.2 應變分區）】
   εt = εcu×(d-c)/c = 0.003×(${d}-${c.toFixed(3)})/${c.toFixed(3)} = ${epsT.toFixed(5)}
-  εt ${epsT>=0.005?'≥ 0.005 → 拉力控制':epsT>=0.002?'介於 0.002~0.005 → 過渡區':'< 0.002 → 壓力控制'} → φ = 0.90
-  φMn = 0.90 × ${Mn.toFixed(3)} = ${phiMn.toFixed(3)} kN·m
+  εty = fy/Es = ${fy}/${Es} = ${epsTy.toFixed(5)}
+  ${epsT>=0.005?`εt ≥ 0.005 → 拉力控制 → φ = 0.90`:epsT<=epsTy?`εt ≤ εty → 壓力控制 → φ = 0.65`:`εty < εt < 0.005 → 過渡區 → φ = 0.65+(εt-εty)×0.25/(0.005-εty) = ${phi.toFixed(4)}`}
+  φMn = ${phi.toFixed(4)} × ${Mn.toFixed(3)} = ${phiMn.toFixed(3)} kN·m
 
 【七、強度驗算】
   φMn = ${phiMn.toFixed(3)} kN·m ${ok?'≥':'<'} Mu = ${Mu} kN·m → ${ok?'OK ✓ 強度足夠':'NG ✗ 強度不足'}
